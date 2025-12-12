@@ -114,9 +114,8 @@ max_exceeded: silent
 variables:
   command: '{{ trigger.event.data.command }}'
   endpoint: '{{ trigger.event.data.endpoint_id | int }}'
-  params: '{{ trigger.event.data.params | default({}) }}'
-  move_mode: '{{ params.get("move_mode", -1) | int }}'
-  step_mode_str: '{{ params.get("step_mode", "") | string }}'
+  move_mode: '{{ (trigger.event.data.params | default({})).get("move_mode", -1) | int }}'
+  step_mode_str: '{{ ((trigger.event.data.params | default({})).get("step_mode", "")) | string }}'
   step_up: '{{ ("Up" in step_mode_str) or (step_mode_str == "0") }}'
   step_down: '{{ ("Down" in step_mode_str) or (step_mode_str == "1") }}'
   remote_device_id: !input remote
