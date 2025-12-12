@@ -1,5 +1,5 @@
 blueprint:
-  name: ROBB SMARRT 8-button switch (ROB_200-007-0) - Fixed
+  name: ROBB SMARRT 8-button switch (ROB_200-025-0) - Fixed
   description: |
     Control devices with ROBB SMARRT 8-button ZigBee switch
     Fixed to properly handle Move/Stop events for dimming
@@ -11,9 +11,8 @@ blueprint:
       selector:
         device:
           integration: zha
-          manufacturer: ROBB smarrt
-          model: ROB_200-007-0
-    
+          model: ROB_200-025-0
+          multiple: false
     on_button_1_short:
       name: Button 1 ON - Short press
       description: Action to run on short press
