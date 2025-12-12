@@ -61,12 +61,21 @@ blueprint:
 
     light_4:
       name: Light for button pair 4 (endpoint 4)
-      description: Used for Button 4 short on/off and long dim up/down
+      description: Used for Button 4 short on/off and long dim up/down (dimmable lights only)
       default: {}
       selector:
         target:
           entity:
             domain: light
+
+    switch_4:
+      name: Switch for button pair 4 (endpoint 4)
+      description: Optional alternative for non-dimmable devices (e.g. Shelly 1). Short press will turn on/off; long press dimming is disabled.
+      default: {}
+      selector:
+        target:
+          entity:
+            domain: switch
 
     dim_step:
       name: Dimming step (brightness)
@@ -171,6 +180,7 @@ variables:
   light_2_target: !input light_2
   light_3_target: !input light_3
   light_4_target: !input light_4
+  switch_4_target: !input switch_4
   dim_step: !input dim_step
   dim_transition_s: !input dim_transition_s
   short_transition_s: !input short_transition_s
@@ -634,23 +644,45 @@ action:
                   command in ["on", "on_with_timed_off", "on_with_recall_global_scene"]
                   or (command in ["step", "step_with_on_off"] and step_up)
                 )
-                and (light_4_target | length) > 0
+                and ((light_4_target | length) > 0 or (switch_4_target | length) > 0)
               }}
         sequence:
-          - action: light.turn_on
-            target: !input light_4
-            data:
-              transition: '{{ short_transition_s | float }}'
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: '{{ (light_4_target | length) > 0 }}'
+                sequence:
+                  - action: light.turn_on
+                    target: !input light_4
+                    data:
+                      transition: '{{ short_transition_s | float }}'
+              - conditions:
+                  - condition: template
+                    value_template: '{{ (switch_4_target | length) > 0 }}'
+                sequence:
+                  - action: switch.turn_on
+                    target: !input switch_4
 
       # Button 4 TOGGLE short
       - conditions:
           - condition: template
-            value_template: '{{ command == "toggle" and endpoint == 4 and (light_4_target | length) > 0 }}'
+            value_template: '{{ command == "toggle" and endpoint == 4 and ((light_4_target | length) > 0 or (switch_4_target | length) > 0) }}'
         sequence:
-          - action: light.toggle
-            target: !input light_4
-            data:
-              transition: '{{ short_transition_s | float }}'
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: '{{ (light_4_target | length) > 0 }}'
+                sequence:
+                  - action: light.toggle
+                    target: !input light_4
+                    data:
+                      transition: '{{ short_transition_s | float }}'
+              - conditions:
+                  - condition: template
+                    value_template: '{{ (switch_4_target | length) > 0 }}'
+                sequence:
+                  - action: switch.toggle
+                    target: !input switch_4
       
       # Button 4 OFF short
       - conditions:
@@ -661,13 +693,24 @@ action:
                   command in ["off", "off_with_effect"]
                   or (command in ["step", "step_with_on_off"] and step_down)
                 )
-                and (light_4_target | length) > 0
+                and ((light_4_target | length) > 0 or (switch_4_target | length) > 0)
               }}
         sequence:
-          - action: light.turn_off
-            target: !input light_4
-            data:
-              transition: '{{ short_transition_s | float }}'
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: '{{ (light_4_target | length) > 0 }}'
+                sequence:
+                  - action: light.turn_off
+                    target: !input light_4
+                    data:
+                      transition: '{{ short_transition_s | float }}'
+              - conditions:
+                  - condition: template
+                    value_template: '{{ (switch_4_target | length) > 0 }}'
+                sequence:
+                  - action: switch.turn_off
+                    target: !input switch_4
       
       # Button 4 ON long
       - conditions:
