@@ -16,6 +16,7 @@ blueprint:
             - integration: zha
               model: ROB_200-025-0
           multiple: false
+    
     on_button_1_short:
       name: Button 1 ON - Short press
       description: Action to run on short press
@@ -122,7 +123,7 @@ max_exceeded: silent
 variables:
   command: '{{ trigger.event.data.command }}'
   endpoint: '{{ trigger.event.data.endpoint_id }}'
-  args: '{{ trigger.event.data.args }}'
+  move_mode: '{{ trigger.event.data.params.move_mode | int(-1) }}'
 
 trigger:
   - platform: event
@@ -147,7 +148,7 @@ action:
       # Button 1 ON long (move_with_on_off up)
       - conditions:
           - condition: template
-            value_template: '{{ command == "move_with_on_off" and endpoint == 1 and args[0] == 0 }}'
+            value_template: '{{ command == "move_with_on_off" and endpoint == 1 and move_mode == 0 }}'
         sequence:
           - repeat:
               while:
@@ -163,7 +164,7 @@ action:
       # Button 1 OFF long (move down)
       - conditions:
           - condition: template
-            value_template: '{{ command == "move" and endpoint == 1 and args[0] == 1 }}'
+            value_template: '{{ command == "move" and endpoint == 1 and move_mode == 1 }}'
         sequence:
           - repeat:
               while:
@@ -197,7 +198,7 @@ action:
       # Button 2 ON long
       - conditions:
           - condition: template
-            value_template: '{{ command == "move_with_on_off" and endpoint == 2 and args[0] == 0 }}'
+            value_template: '{{ command == "move_with_on_off" and endpoint == 2 and move_mode == 0 }}'
         sequence:
           - repeat:
               while:
@@ -213,7 +214,7 @@ action:
       # Button 2 OFF long
       - conditions:
           - condition: template
-            value_template: '{{ command == "move" and endpoint == 2 and args[0] == 1 }}'
+            value_template: '{{ command == "move" and endpoint == 2 and move_mode == 1 }}'
         sequence:
           - repeat:
               while:
@@ -247,7 +248,7 @@ action:
       # Button 3 ON long
       - conditions:
           - condition: template
-            value_template: '{{ command == "move_with_on_off" and endpoint == 3 and args[0] == 0 }}'
+            value_template: '{{ command == "move_with_on_off" and endpoint == 3 and move_mode == 0 }}'
         sequence:
           - repeat:
               while:
@@ -263,7 +264,7 @@ action:
       # Button 3 OFF long
       - conditions:
           - condition: template
-            value_template: '{{ command == "move" and endpoint == 3 and args[0] == 1 }}'
+            value_template: '{{ command == "move" and endpoint == 3 and move_mode == 1 }}'
         sequence:
           - repeat:
               while:
@@ -297,7 +298,7 @@ action:
       # Button 4 ON long
       - conditions:
           - condition: template
-            value_template: '{{ command == "move_with_on_off" and endpoint == 4 and args[0] == 0 }}'
+            value_template: '{{ command == "move_with_on_off" and endpoint == 4 and move_mode == 0 }}'
         sequence:
           - repeat:
               while:
@@ -313,7 +314,7 @@ action:
       # Button 4 OFF long
       - conditions:
           - condition: template
-            value_template: '{{ command == "move" and endpoint == 4 and args[0] == 1 }}'
+            value_template: '{{ command == "move" and endpoint == 4 and move_mode == 1 }}'
         sequence:
           - repeat:
               while:
