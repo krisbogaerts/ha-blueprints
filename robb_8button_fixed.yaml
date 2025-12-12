@@ -1,0 +1,331 @@
+blueprint:
+  name: ROBB SMARRT 8-button switch (ROB_200-007-0) - Fixed
+  description: |
+    Control devices with ROBB SMARRT 8-button ZigBee switch
+    Fixed to properly handle Move/Stop events for dimming
+  domain: automation
+  input:
+    remote:
+      name: ROBB SMARRT switch
+      description: Select the switch device
+      selector:
+        device:
+          integration: zha
+          manufacturer: ROBB smarrt
+          model: ROB_200-007-0
+    
+    on_button_1_short:
+      name: Button 1 ON - Short press
+      description: Action to run on short press
+      default: []
+      selector:
+        action: {}
+    
+    off_button_1_short:
+      name: Button 1 OFF - Short press
+      description: Action to run on short press
+      default: []
+      selector:
+        action: {}
+    
+    on_button_1_long:
+      name: Button 1 ON - Long press (hold)
+      description: Action to run while holding (repeat until released)
+      default: []
+      selector:
+        action: {}
+    
+    off_button_1_long:
+      name: Button 1 OFF - Long press (hold)
+      description: Action to run while holding (repeat until released)
+      default: []
+      selector:
+        action: {}
+    
+    on_button_2_short:
+      name: Button 2 ON - Short press
+      default: []
+      selector:
+        action: {}
+    
+    off_button_2_short:
+      name: Button 2 OFF - Short press
+      default: []
+      selector:
+        action: {}
+    
+    on_button_2_long:
+      name: Button 2 ON - Long press
+      default: []
+      selector:
+        action: {}
+    
+    off_button_2_long:
+      name: Button 2 OFF - Long press
+      default: []
+      selector:
+        action: {}
+    
+    on_button_3_short:
+      name: Button 3 ON - Short press
+      default: []
+      selector:
+        action: {}
+    
+    off_button_3_short:
+      name: Button 3 OFF - Short press
+      default: []
+      selector:
+        action: {}
+    
+    on_button_3_long:
+      name: Button 3 ON - Long press
+      default: []
+      selector:
+        action: {}
+    
+    off_button_3_long:
+      name: Button 3 OFF - Long press
+      default: []
+      selector:
+        action: {}
+    
+    on_button_4_short:
+      name: Button 4 ON - Short press
+      default: []
+      selector:
+        action: {}
+    
+    off_button_4_short:
+      name: Button 4 OFF - Short press
+      default: []
+      selector:
+        action: {}
+    
+    on_button_4_long:
+      name: Button 4 ON - Long press
+      default: []
+      selector:
+        action: {}
+    
+    off_button_4_long:
+      name: Button 4 OFF - Long press
+      default: []
+      selector:
+        action: {}
+
+mode: restart
+max_exceeded: silent
+
+variables:
+  command: '{{ trigger.event.data.command }}'
+  endpoint: '{{ trigger.event.data.endpoint_id }}'
+  args: '{{ trigger.event.data.args }}'
+
+trigger:
+  - platform: event
+    event_type: zha_event
+    event_data:
+      device_id: !input remote
+
+action:
+  - choose:
+      # Button 1 ON short
+      - conditions:
+          - condition: template
+            value_template: '{{ command == "on" and endpoint == 1 }}'
+        sequence: !input on_button_1_short
+      
+      # Button 1 OFF short
+      - conditions:
+          - condition: template
+            value_template: '{{ command == "off" and endpoint == 1 }}'
+        sequence: !input off_button_1_short
+      
+      # Button 1 ON long (move_with_on_off up)
+      - conditions:
+          - condition: template
+            value_template: '{{ command == "move_with_on_off" and endpoint == 1 and args[0] == 0 }}'
+        sequence:
+          - repeat:
+              while:
+                - condition: template
+                  value_template: "true"
+              sequence:
+                - choose:
+                    - conditions: []
+                      sequence: !input on_button_1_long
+                - delay:
+                    milliseconds: 200
+      
+      # Button 1 OFF long (move down)
+      - conditions:
+          - condition: template
+            value_template: '{{ command == "move" and endpoint == 1 and args[0] == 1 }}'
+        sequence:
+          - repeat:
+              while:
+                - condition: template
+                  value_template: "true"
+              sequence:
+                - choose:
+                    - conditions: []
+                      sequence: !input off_button_1_long
+                - delay:
+                    milliseconds: 200
+      
+      # Button 1 Stop (release)
+      - conditions:
+          - condition: template
+            value_template: '{{ command == "stop" and endpoint == 1 }}'
+        sequence: []
+      
+      # Button 2 ON short
+      - conditions:
+          - condition: template
+            value_template: '{{ command == "on" and endpoint == 2 }}'
+        sequence: !input on_button_2_short
+      
+      # Button 2 OFF short
+      - conditions:
+          - condition: template
+            value_template: '{{ command == "off" and endpoint == 2 }}'
+        sequence: !input off_button_2_short
+      
+      # Button 2 ON long
+      - conditions:
+          - condition: template
+            value_template: '{{ command == "move_with_on_off" and endpoint == 2 and args[0] == 0 }}'
+        sequence:
+          - repeat:
+              while:
+                - condition: template
+                  value_template: "true"
+              sequence:
+                - choose:
+                    - conditions: []
+                      sequence: !input on_button_2_long
+                - delay:
+                    milliseconds: 200
+      
+      # Button 2 OFF long
+      - conditions:
+          - condition: template
+            value_template: '{{ command == "move" and endpoint == 2 and args[0] == 1 }}'
+        sequence:
+          - repeat:
+              while:
+                - condition: template
+                  value_template: "true"
+              sequence:
+                - choose:
+                    - conditions: []
+                      sequence: !input off_button_2_long
+                - delay:
+                    milliseconds: 200
+      
+      # Button 2 Stop
+      - conditions:
+          - condition: template
+            value_template: '{{ command == "stop" and endpoint == 2 }}'
+        sequence: []
+      
+      # Button 3 ON short
+      - conditions:
+          - condition: template
+            value_template: '{{ command == "on" and endpoint == 3 }}'
+        sequence: !input on_button_3_short
+      
+      # Button 3 OFF short
+      - conditions:
+          - condition: template
+            value_template: '{{ command == "off" and endpoint == 3 }}'
+        sequence: !input off_button_3_short
+      
+      # Button 3 ON long
+      - conditions:
+          - condition: template
+            value_template: '{{ command == "move_with_on_off" and endpoint == 3 and args[0] == 0 }}'
+        sequence:
+          - repeat:
+              while:
+                - condition: template
+                  value_template: "true"
+              sequence:
+                - choose:
+                    - conditions: []
+                      sequence: !input on_button_3_long
+                - delay:
+                    milliseconds: 200
+      
+      # Button 3 OFF long
+      - conditions:
+          - condition: template
+            value_template: '{{ command == "move" and endpoint == 3 and args[0] == 1 }}'
+        sequence:
+          - repeat:
+              while:
+                - condition: template
+                  value_template: "true"
+              sequence:
+                - choose:
+                    - conditions: []
+                      sequence: !input off_button_3_long
+                - delay:
+                    milliseconds: 200
+      
+      # Button 3 Stop
+      - conditions:
+          - condition: template
+            value_template: '{{ command == "stop" and endpoint == 3 }}'
+        sequence: []
+      
+      # Button 4 ON short
+      - conditions:
+          - condition: template
+            value_template: '{{ command == "on" and endpoint == 4 }}'
+        sequence: !input on_button_4_short
+      
+      # Button 4 OFF short
+      - conditions:
+          - condition: template
+            value_template: '{{ command == "off" and endpoint == 4 }}'
+        sequence: !input off_button_4_short
+      
+      # Button 4 ON long
+      - conditions:
+          - condition: template
+            value_template: '{{ command == "move_with_on_off" and endpoint == 4 and args[0] == 0 }}'
+        sequence:
+          - repeat:
+              while:
+                - condition: template
+                  value_template: "true"
+              sequence:
+                - choose:
+                    - conditions: []
+                      sequence: !input on_button_4_long
+                - delay:
+                    milliseconds: 200
+      
+      # Button 4 OFF long
+      - conditions:
+          - condition: template
+            value_template: '{{ command == "move" and endpoint == 4 and args[0] == 1 }}'
+        sequence:
+          - repeat:
+              while:
+                - condition: template
+                  value_template: "true"
+              sequence:
+                - choose:
+                    - conditions: []
+                      sequence: !input off_button_4_long
+                - delay:
+                    milliseconds: 200
+      
+      # Button 4 Stop
+      - conditions:
+          - condition: template
+            value_template: '{{ command == "stop" and endpoint == 4 }}'
+        sequence: []
