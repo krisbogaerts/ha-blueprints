@@ -31,7 +31,6 @@ blueprint:
     light_1:
       name: Light for button pair 1 (endpoint 1)
       description: Used for Button 1 short on/off and long dim up/down
-      default: ""
       selector:
         entity:
           domain: light
@@ -39,7 +38,6 @@ blueprint:
     light_2:
       name: Light for button pair 2 (endpoint 2)
       description: Used for Button 2 short on/off and long dim up/down
-      default: ""
       selector:
         entity:
           domain: light
@@ -47,7 +45,6 @@ blueprint:
     light_3:
       name: Light for button pair 3 (endpoint 3)
       description: Used for Button 3 short on/off and long dim up/down
-      default: ""
       selector:
         entity:
           domain: light
@@ -55,7 +52,6 @@ blueprint:
     light_4:
       name: Light for button pair 4 (endpoint 4)
       description: Used for Button 4 short on/off and long dim up/down
-      default: ""
       selector:
         entity:
           domain: light
@@ -104,6 +100,13 @@ blueprint:
           step: 1
           mode: slider
 
+    debug:
+      name: Debug logging
+      description: Write received ZHA events to the system log to help troubleshooting
+      default: false
+      selector:
+        boolean: {}
+
 mode: restart
 max_exceeded: silent
 
@@ -112,13 +115,10 @@ variables:
   endpoint: '{{ trigger.event.data.endpoint_id | int }}'
   move_mode: '{{ trigger.event.data.params.move_mode | int(-1) }}'
   remote_device_id: !input remote
-  light_1: !input light_1
-  light_2: !input light_2
-  light_3: !input light_3
-  light_4: !input light_4
   dim_step: !input dim_step
   dim_transition_s: !input dim_transition_s
   max_hold_s: !input max_hold_s
+  debug: !input debug
 
 trigger:
   - platform: event
@@ -128,33 +128,33 @@ trigger:
 
 action:
   - choose:
+      - conditions:
+          - condition: template
+            value_template: '{{ debug }}'
+        sequence:
+          - action: system_log.write
+            data:
+              level: info
+              message: >-
+                ROBB dim blueprint zha_event: command={{ command }}, endpoint={{ endpoint }}, move_mode={{ move_mode }}, data={{ trigger.event.data }}
+  - choose:
       # Button 1 ON short
       - conditions:
           - condition: template
             value_template: '{{ command == "on" and endpoint == 1 }}'
         sequence:
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: '{{ light_1 | length > 0 }}'
-                sequence:
-                  - action: light.turn_on
-                    target:
-                      entity_id: '{{ light_1 }}'
+          - action: light.turn_on
+            target:
+              entity_id: !input light_1
       
       # Button 1 OFF short
       - conditions:
           - condition: template
             value_template: '{{ command == "off" and endpoint == 1 }}'
         sequence:
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: '{{ light_1 | length > 0 }}'
-                sequence:
-                  - action: light.turn_off
-                    target:
-                      entity_id: '{{ light_1 }}'
+          - action: light.turn_off
+            target:
+              entity_id: !input light_1
       
       # Button 1 ON long (move_with_on_off up)
       - conditions:
@@ -164,30 +164,16 @@ action:
           - variables:
               hold_started: '{{ now().timestamp() }}'
           - repeat:
-              until:
+              while:
                 - condition: template
-                  value_template: >-
-                    {{
-                      (
-                        wait.trigger is not none
-                        and wait.trigger.event.data.device_id == remote_device_id
-                        and (wait.trigger.event.data.endpoint_id | int) == endpoint
-                        and wait.trigger.event.data.command in ['stop', 'stop_with_on_off']
-                      )
-                      or ((now().timestamp() - hold_started) > (max_hold_s | float))
-                    }}
+                  value_template: '{{ (now().timestamp() - hold_started) <= (max_hold_s | float) }}'
               sequence:
-                - choose:
-                    - conditions:
-                        - condition: template
-                          value_template: '{{ light_1 | length > 0 }}'
-                      sequence:
-                        - action: light.turn_on
-                          target:
-                            entity_id: '{{ light_1 }}'
-                          data:
-                            brightness_step: '{{ dim_step | int }}'
-                            transition: '{{ dim_transition_s | float }}'
+                - action: light.turn_on
+                  target:
+                    entity_id: !input light_1
+                  data:
+                    brightness_step: '{{ dim_step | int }}'
+                    transition: '{{ dim_transition_s | float }}'
                 - wait_for_trigger:
                     - platform: event
                       event_type: zha_event
@@ -204,6 +190,12 @@ action:
                   timeout:
                     milliseconds: !input hold_repeat_ms
                   continue_on_timeout: true
+                - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: '{{ wait.trigger is not none }}'
+                      sequence:
+                        - stop: ""
       
       # Button 1 OFF long (move down)
       - conditions:
@@ -213,30 +205,16 @@ action:
           - variables:
               hold_started: '{{ now().timestamp() }}'
           - repeat:
-              until:
+              while:
                 - condition: template
-                  value_template: >-
-                    {{
-                      (
-                        wait.trigger is not none
-                        and wait.trigger.event.data.device_id == remote_device_id
-                        and (wait.trigger.event.data.endpoint_id | int) == endpoint
-                        and wait.trigger.event.data.command in ['stop', 'stop_with_on_off']
-                      )
-                      or ((now().timestamp() - hold_started) > (max_hold_s | float))
-                    }}
+                  value_template: '{{ (now().timestamp() - hold_started) <= (max_hold_s | float) }}'
               sequence:
-                - choose:
-                    - conditions:
-                        - condition: template
-                          value_template: '{{ light_1 | length > 0 }}'
-                      sequence:
-                        - action: light.turn_on
-                          target:
-                            entity_id: '{{ light_1 }}'
-                          data:
-                            brightness_step: '{{ (dim_step | int) * -1 }}'
-                            transition: '{{ dim_transition_s | float }}'
+                - action: light.turn_on
+                  target:
+                    entity_id: !input light_1
+                  data:
+                    brightness_step: '{{ (dim_step | int) * -1 }}'
+                    transition: '{{ dim_transition_s | float }}'
                 - wait_for_trigger:
                     - platform: event
                       event_type: zha_event
@@ -253,6 +231,12 @@ action:
                   timeout:
                     milliseconds: !input hold_repeat_ms
                   continue_on_timeout: true
+                - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: '{{ wait.trigger is not none }}'
+                      sequence:
+                        - stop: ""
       
       # Button 1 Stop (release) - handles both stop and stop_with_on_off
       - conditions:
@@ -265,28 +249,18 @@ action:
           - condition: template
             value_template: '{{ command == "on" and endpoint == 2 }}'
         sequence:
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: '{{ light_2 | length > 0 }}'
-                sequence:
-                  - action: light.turn_on
-                    target:
-                      entity_id: '{{ light_2 }}'
+          - action: light.turn_on
+            target:
+              entity_id: !input light_2
       
       # Button 2 OFF short
       - conditions:
           - condition: template
             value_template: '{{ command == "off" and endpoint == 2 }}'
         sequence:
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: '{{ light_2 | length > 0 }}'
-                sequence:
-                  - action: light.turn_off
-                    target:
-                      entity_id: '{{ light_2 }}'
+          - action: light.turn_off
+            target:
+              entity_id: !input light_2
       
       # Button 2 ON long
       - conditions:
@@ -296,30 +270,16 @@ action:
           - variables:
               hold_started: '{{ now().timestamp() }}'
           - repeat:
-              until:
+              while:
                 - condition: template
-                  value_template: >-
-                    {{
-                      (
-                        wait.trigger is not none
-                        and wait.trigger.event.data.device_id == remote_device_id
-                        and (wait.trigger.event.data.endpoint_id | int) == endpoint
-                        and wait.trigger.event.data.command in ['stop', 'stop_with_on_off']
-                      )
-                      or ((now().timestamp() - hold_started) > (max_hold_s | float))
-                    }}
+                  value_template: '{{ (now().timestamp() - hold_started) <= (max_hold_s | float) }}'
               sequence:
-                - choose:
-                    - conditions:
-                        - condition: template
-                          value_template: '{{ light_2 | length > 0 }}'
-                      sequence:
-                        - action: light.turn_on
-                          target:
-                            entity_id: '{{ light_2 }}'
-                          data:
-                            brightness_step: '{{ dim_step | int }}'
-                            transition: '{{ dim_transition_s | float }}'
+                - action: light.turn_on
+                  target:
+                    entity_id: !input light_2
+                  data:
+                    brightness_step: '{{ dim_step | int }}'
+                    transition: '{{ dim_transition_s | float }}'
                 - wait_for_trigger:
                     - platform: event
                       event_type: zha_event
@@ -336,6 +296,12 @@ action:
                   timeout:
                     milliseconds: !input hold_repeat_ms
                   continue_on_timeout: true
+                - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: '{{ wait.trigger is not none }}'
+                      sequence:
+                        - stop: ""
       
       # Button 2 OFF long
       - conditions:
@@ -345,30 +311,16 @@ action:
           - variables:
               hold_started: '{{ now().timestamp() }}'
           - repeat:
-              until:
+              while:
                 - condition: template
-                  value_template: >-
-                    {{
-                      (
-                        wait.trigger is not none
-                        and wait.trigger.event.data.device_id == remote_device_id
-                        and (wait.trigger.event.data.endpoint_id | int) == endpoint
-                        and wait.trigger.event.data.command in ['stop', 'stop_with_on_off']
-                      )
-                      or ((now().timestamp() - hold_started) > (max_hold_s | float))
-                    }}
+                  value_template: '{{ (now().timestamp() - hold_started) <= (max_hold_s | float) }}'
               sequence:
-                - choose:
-                    - conditions:
-                        - condition: template
-                          value_template: '{{ light_2 | length > 0 }}'
-                      sequence:
-                        - action: light.turn_on
-                          target:
-                            entity_id: '{{ light_2 }}'
-                          data:
-                            brightness_step: '{{ (dim_step | int) * -1 }}'
-                            transition: '{{ dim_transition_s | float }}'
+                - action: light.turn_on
+                  target:
+                    entity_id: !input light_2
+                  data:
+                    brightness_step: '{{ (dim_step | int) * -1 }}'
+                    transition: '{{ dim_transition_s | float }}'
                 - wait_for_trigger:
                     - platform: event
                       event_type: zha_event
@@ -385,6 +337,12 @@ action:
                   timeout:
                     milliseconds: !input hold_repeat_ms
                   continue_on_timeout: true
+                - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: '{{ wait.trigger is not none }}'
+                      sequence:
+                        - stop: ""
       
       # Button 2 Stop
       - conditions:
@@ -397,28 +355,18 @@ action:
           - condition: template
             value_template: '{{ command == "on" and endpoint == 3 }}'
         sequence:
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: '{{ light_3 | length > 0 }}'
-                sequence:
-                  - action: light.turn_on
-                    target:
-                      entity_id: '{{ light_3 }}'
+          - action: light.turn_on
+            target:
+              entity_id: !input light_3
       
       # Button 3 OFF short
       - conditions:
           - condition: template
             value_template: '{{ command == "off" and endpoint == 3 }}'
         sequence:
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: '{{ light_3 | length > 0 }}'
-                sequence:
-                  - action: light.turn_off
-                    target:
-                      entity_id: '{{ light_3 }}'
+          - action: light.turn_off
+            target:
+              entity_id: !input light_3
       
       # Button 3 ON long
       - conditions:
@@ -428,30 +376,16 @@ action:
           - variables:
               hold_started: '{{ now().timestamp() }}'
           - repeat:
-              until:
+              while:
                 - condition: template
-                  value_template: >-
-                    {{
-                      (
-                        wait.trigger is not none
-                        and wait.trigger.event.data.device_id == remote_device_id
-                        and (wait.trigger.event.data.endpoint_id | int) == endpoint
-                        and wait.trigger.event.data.command in ['stop', 'stop_with_on_off']
-                      )
-                      or ((now().timestamp() - hold_started) > (max_hold_s | float))
-                    }}
+                  value_template: '{{ (now().timestamp() - hold_started) <= (max_hold_s | float) }}'
               sequence:
-                - choose:
-                    - conditions:
-                        - condition: template
-                          value_template: '{{ light_3 | length > 0 }}'
-                      sequence:
-                        - action: light.turn_on
-                          target:
-                            entity_id: '{{ light_3 }}'
-                          data:
-                            brightness_step: '{{ dim_step | int }}'
-                            transition: '{{ dim_transition_s | float }}'
+                - action: light.turn_on
+                  target:
+                    entity_id: !input light_3
+                  data:
+                    brightness_step: '{{ dim_step | int }}'
+                    transition: '{{ dim_transition_s | float }}'
                 - wait_for_trigger:
                     - platform: event
                       event_type: zha_event
@@ -468,6 +402,12 @@ action:
                   timeout:
                     milliseconds: !input hold_repeat_ms
                   continue_on_timeout: true
+                - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: '{{ wait.trigger is not none }}'
+                      sequence:
+                        - stop: ""
       
       # Button 3 OFF long
       - conditions:
@@ -477,30 +417,16 @@ action:
           - variables:
               hold_started: '{{ now().timestamp() }}'
           - repeat:
-              until:
+              while:
                 - condition: template
-                  value_template: >-
-                    {{
-                      (
-                        wait.trigger is not none
-                        and wait.trigger.event.data.device_id == remote_device_id
-                        and (wait.trigger.event.data.endpoint_id | int) == endpoint
-                        and wait.trigger.event.data.command in ['stop', 'stop_with_on_off']
-                      )
-                      or ((now().timestamp() - hold_started) > (max_hold_s | float))
-                    }}
+                  value_template: '{{ (now().timestamp() - hold_started) <= (max_hold_s | float) }}'
               sequence:
-                - choose:
-                    - conditions:
-                        - condition: template
-                          value_template: '{{ light_3 | length > 0 }}'
-                      sequence:
-                        - action: light.turn_on
-                          target:
-                            entity_id: '{{ light_3 }}'
-                          data:
-                            brightness_step: '{{ (dim_step | int) * -1 }}'
-                            transition: '{{ dim_transition_s | float }}'
+                - action: light.turn_on
+                  target:
+                    entity_id: !input light_3
+                  data:
+                    brightness_step: '{{ (dim_step | int) * -1 }}'
+                    transition: '{{ dim_transition_s | float }}'
                 - wait_for_trigger:
                     - platform: event
                       event_type: zha_event
@@ -517,6 +443,12 @@ action:
                   timeout:
                     milliseconds: !input hold_repeat_ms
                   continue_on_timeout: true
+                - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: '{{ wait.trigger is not none }}'
+                      sequence:
+                        - stop: ""
       
       # Button 3 Stop
       - conditions:
@@ -529,28 +461,18 @@ action:
           - condition: template
             value_template: '{{ command == "on" and endpoint == 4 }}'
         sequence:
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: '{{ light_4 | length > 0 }}'
-                sequence:
-                  - action: light.turn_on
-                    target:
-                      entity_id: '{{ light_4 }}'
+          - action: light.turn_on
+            target:
+              entity_id: !input light_4
       
       # Button 4 OFF short
       - conditions:
           - condition: template
             value_template: '{{ command == "off" and endpoint == 4 }}'
         sequence:
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: '{{ light_4 | length > 0 }}'
-                sequence:
-                  - action: light.turn_off
-                    target:
-                      entity_id: '{{ light_4 }}'
+          - action: light.turn_off
+            target:
+              entity_id: !input light_4
       
       # Button 4 ON long
       - conditions:
@@ -560,30 +482,16 @@ action:
           - variables:
               hold_started: '{{ now().timestamp() }}'
           - repeat:
-              until:
+              while:
                 - condition: template
-                  value_template: >-
-                    {{
-                      (
-                        wait.trigger is not none
-                        and wait.trigger.event.data.device_id == remote_device_id
-                        and (wait.trigger.event.data.endpoint_id | int) == endpoint
-                        and wait.trigger.event.data.command in ['stop', 'stop_with_on_off']
-                      )
-                      or ((now().timestamp() - hold_started) > (max_hold_s | float))
-                    }}
+                  value_template: '{{ (now().timestamp() - hold_started) <= (max_hold_s | float) }}'
               sequence:
-                - choose:
-                    - conditions:
-                        - condition: template
-                          value_template: '{{ light_4 | length > 0 }}'
-                      sequence:
-                        - action: light.turn_on
-                          target:
-                            entity_id: '{{ light_4 }}'
-                          data:
-                            brightness_step: '{{ dim_step | int }}'
-                            transition: '{{ dim_transition_s | float }}'
+                - action: light.turn_on
+                  target:
+                    entity_id: !input light_4
+                  data:
+                    brightness_step: '{{ dim_step | int }}'
+                    transition: '{{ dim_transition_s | float }}'
                 - wait_for_trigger:
                     - platform: event
                       event_type: zha_event
@@ -600,6 +508,12 @@ action:
                   timeout:
                     milliseconds: !input hold_repeat_ms
                   continue_on_timeout: true
+                - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: '{{ wait.trigger is not none }}'
+                      sequence:
+                        - stop: ""
       
       # Button 4 OFF long
       - conditions:
@@ -609,30 +523,16 @@ action:
           - variables:
               hold_started: '{{ now().timestamp() }}'
           - repeat:
-              until:
+              while:
                 - condition: template
-                  value_template: >-
-                    {{
-                      (
-                        wait.trigger is not none
-                        and wait.trigger.event.data.device_id == remote_device_id
-                        and (wait.trigger.event.data.endpoint_id | int) == endpoint
-                        and wait.trigger.event.data.command in ['stop', 'stop_with_on_off']
-                      )
-                      or ((now().timestamp() - hold_started) > (max_hold_s | float))
-                    }}
+                  value_template: '{{ (now().timestamp() - hold_started) <= (max_hold_s | float) }}'
               sequence:
-                - choose:
-                    - conditions:
-                        - condition: template
-                          value_template: '{{ light_4 | length > 0 }}'
-                      sequence:
-                        - action: light.turn_on
-                          target:
-                            entity_id: '{{ light_4 }}'
-                          data:
-                            brightness_step: '{{ (dim_step | int) * -1 }}'
-                            transition: '{{ dim_transition_s | float }}'
+                - action: light.turn_on
+                  target:
+                    entity_id: !input light_4
+                  data:
+                    brightness_step: '{{ (dim_step | int) * -1 }}'
+                    transition: '{{ dim_transition_s | float }}'
                 - wait_for_trigger:
                     - platform: event
                       event_type: zha_event
@@ -649,6 +549,12 @@ action:
                   timeout:
                     milliseconds: !input hold_repeat_ms
                   continue_on_timeout: true
+                - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: '{{ wait.trigger is not none }}'
+                      sequence:
+                        - stop: ""
       
       # Button 4 Stop
       - conditions:
