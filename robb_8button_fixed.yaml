@@ -117,13 +117,25 @@ blueprint:
       selector:
         action: {}
 
+    hold_repeat_ms:
+      name: Hold repeat interval (ms)
+      description: Delay between repeated actions while holding a button
+      default: 200
+      selector:
+        number:
+          min: 50
+          max: 1000
+          step: 10
+          mode: slider
+
 mode: restart
 max_exceeded: silent
 
 variables:
   command: '{{ trigger.event.data.command }}'
-  endpoint: '{{ trigger.event.data.endpoint_id }}'
+  endpoint: '{{ trigger.event.data.endpoint_id | int }}'
   move_mode: '{{ trigger.event.data.params.move_mode | int(-1) }}'
+  remote_device_id: !input remote
 
 trigger:
   - platform: event
@@ -151,15 +163,35 @@ action:
             value_template: '{{ command == "move_with_on_off" and endpoint == 1 and move_mode == 0 }}'
         sequence:
           - repeat:
-              while:
+              until:
                 - condition: template
-                  value_template: "true"
+                  value_template: >-
+                    {{
+                      wait.trigger is not none
+                      and wait.trigger.event.data.device_id == remote_device_id
+                      and (wait.trigger.event.data.endpoint_id | int) == endpoint
+                      and wait.trigger.event.data.command in ['stop', 'stop_with_on_off']
+                    }}
               sequence:
                 - choose:
                     - conditions: []
                       sequence: !input on_button_1_long
-                - delay:
-                    milliseconds: 200
+                - wait_for_trigger:
+                    - platform: event
+                      event_type: zha_event
+                      event_data:
+                        device_id: !input remote
+                        endpoint_id: 1
+                        command: stop
+                    - platform: event
+                      event_type: zha_event
+                      event_data:
+                        device_id: !input remote
+                        endpoint_id: 1
+                        command: stop_with_on_off
+                  timeout:
+                    milliseconds: !input hold_repeat_ms
+                  continue_on_timeout: true
       
       # Button 1 OFF long (move down)
       - conditions:
@@ -167,15 +199,35 @@ action:
             value_template: '{{ command == "move" and endpoint == 1 and move_mode == 1 }}'
         sequence:
           - repeat:
-              while:
+              until:
                 - condition: template
-                  value_template: "true"
+                  value_template: >-
+                    {{
+                      wait.trigger is not none
+                      and wait.trigger.event.data.device_id == remote_device_id
+                      and (wait.trigger.event.data.endpoint_id | int) == endpoint
+                      and wait.trigger.event.data.command in ['stop', 'stop_with_on_off']
+                    }}
               sequence:
                 - choose:
                     - conditions: []
                       sequence: !input off_button_1_long
-                - delay:
-                    milliseconds: 200
+                - wait_for_trigger:
+                    - platform: event
+                      event_type: zha_event
+                      event_data:
+                        device_id: !input remote
+                        endpoint_id: 1
+                        command: stop
+                    - platform: event
+                      event_type: zha_event
+                      event_data:
+                        device_id: !input remote
+                        endpoint_id: 1
+                        command: stop_with_on_off
+                  timeout:
+                    milliseconds: !input hold_repeat_ms
+                  continue_on_timeout: true
       
       # Button 1 Stop (release) - handles both stop and stop_with_on_off
       - conditions:
@@ -201,15 +253,35 @@ action:
             value_template: '{{ command == "move_with_on_off" and endpoint == 2 and move_mode == 0 }}'
         sequence:
           - repeat:
-              while:
+              until:
                 - condition: template
-                  value_template: "true"
+                  value_template: >-
+                    {{
+                      wait.trigger is not none
+                      and wait.trigger.event.data.device_id == remote_device_id
+                      and (wait.trigger.event.data.endpoint_id | int) == endpoint
+                      and wait.trigger.event.data.command in ['stop', 'stop_with_on_off']
+                    }}
               sequence:
                 - choose:
                     - conditions: []
                       sequence: !input on_button_2_long
-                - delay:
-                    milliseconds: 200
+                - wait_for_trigger:
+                    - platform: event
+                      event_type: zha_event
+                      event_data:
+                        device_id: !input remote
+                        endpoint_id: 2
+                        command: stop
+                    - platform: event
+                      event_type: zha_event
+                      event_data:
+                        device_id: !input remote
+                        endpoint_id: 2
+                        command: stop_with_on_off
+                  timeout:
+                    milliseconds: !input hold_repeat_ms
+                  continue_on_timeout: true
       
       # Button 2 OFF long
       - conditions:
@@ -217,15 +289,35 @@ action:
             value_template: '{{ command == "move" and endpoint == 2 and move_mode == 1 }}'
         sequence:
           - repeat:
-              while:
+              until:
                 - condition: template
-                  value_template: "true"
+                  value_template: >-
+                    {{
+                      wait.trigger is not none
+                      and wait.trigger.event.data.device_id == remote_device_id
+                      and (wait.trigger.event.data.endpoint_id | int) == endpoint
+                      and wait.trigger.event.data.command in ['stop', 'stop_with_on_off']
+                    }}
               sequence:
                 - choose:
                     - conditions: []
                       sequence: !input off_button_2_long
-                - delay:
-                    milliseconds: 200
+                - wait_for_trigger:
+                    - platform: event
+                      event_type: zha_event
+                      event_data:
+                        device_id: !input remote
+                        endpoint_id: 2
+                        command: stop
+                    - platform: event
+                      event_type: zha_event
+                      event_data:
+                        device_id: !input remote
+                        endpoint_id: 2
+                        command: stop_with_on_off
+                  timeout:
+                    milliseconds: !input hold_repeat_ms
+                  continue_on_timeout: true
       
       # Button 2 Stop
       - conditions:
@@ -251,15 +343,35 @@ action:
             value_template: '{{ command == "move_with_on_off" and endpoint == 3 and move_mode == 0 }}'
         sequence:
           - repeat:
-              while:
+              until:
                 - condition: template
-                  value_template: "true"
+                  value_template: >-
+                    {{
+                      wait.trigger is not none
+                      and wait.trigger.event.data.device_id == remote_device_id
+                      and (wait.trigger.event.data.endpoint_id | int) == endpoint
+                      and wait.trigger.event.data.command in ['stop', 'stop_with_on_off']
+                    }}
               sequence:
                 - choose:
                     - conditions: []
                       sequence: !input on_button_3_long
-                - delay:
-                    milliseconds: 200
+                - wait_for_trigger:
+                    - platform: event
+                      event_type: zha_event
+                      event_data:
+                        device_id: !input remote
+                        endpoint_id: 3
+                        command: stop
+                    - platform: event
+                      event_type: zha_event
+                      event_data:
+                        device_id: !input remote
+                        endpoint_id: 3
+                        command: stop_with_on_off
+                  timeout:
+                    milliseconds: !input hold_repeat_ms
+                  continue_on_timeout: true
       
       # Button 3 OFF long
       - conditions:
@@ -267,15 +379,35 @@ action:
             value_template: '{{ command == "move" and endpoint == 3 and move_mode == 1 }}'
         sequence:
           - repeat:
-              while:
+              until:
                 - condition: template
-                  value_template: "true"
+                  value_template: >-
+                    {{
+                      wait.trigger is not none
+                      and wait.trigger.event.data.device_id == remote_device_id
+                      and (wait.trigger.event.data.endpoint_id | int) == endpoint
+                      and wait.trigger.event.data.command in ['stop', 'stop_with_on_off']
+                    }}
               sequence:
                 - choose:
                     - conditions: []
                       sequence: !input off_button_3_long
-                - delay:
-                    milliseconds: 200
+                - wait_for_trigger:
+                    - platform: event
+                      event_type: zha_event
+                      event_data:
+                        device_id: !input remote
+                        endpoint_id: 3
+                        command: stop
+                    - platform: event
+                      event_type: zha_event
+                      event_data:
+                        device_id: !input remote
+                        endpoint_id: 3
+                        command: stop_with_on_off
+                  timeout:
+                    milliseconds: !input hold_repeat_ms
+                  continue_on_timeout: true
       
       # Button 3 Stop
       - conditions:
@@ -301,15 +433,35 @@ action:
             value_template: '{{ command == "move_with_on_off" and endpoint == 4 and move_mode == 0 }}'
         sequence:
           - repeat:
-              while:
+              until:
                 - condition: template
-                  value_template: "true"
+                  value_template: >-
+                    {{
+                      wait.trigger is not none
+                      and wait.trigger.event.data.device_id == remote_device_id
+                      and (wait.trigger.event.data.endpoint_id | int) == endpoint
+                      and wait.trigger.event.data.command in ['stop', 'stop_with_on_off']
+                    }}
               sequence:
                 - choose:
                     - conditions: []
                       sequence: !input on_button_4_long
-                - delay:
-                    milliseconds: 200
+                - wait_for_trigger:
+                    - platform: event
+                      event_type: zha_event
+                      event_data:
+                        device_id: !input remote
+                        endpoint_id: 4
+                        command: stop
+                    - platform: event
+                      event_type: zha_event
+                      event_data:
+                        device_id: !input remote
+                        endpoint_id: 4
+                        command: stop_with_on_off
+                  timeout:
+                    milliseconds: !input hold_repeat_ms
+                  continue_on_timeout: true
       
       # Button 4 OFF long
       - conditions:
@@ -317,15 +469,35 @@ action:
             value_template: '{{ command == "move" and endpoint == 4 and move_mode == 1 }}'
         sequence:
           - repeat:
-              while:
+              until:
                 - condition: template
-                  value_template: "true"
+                  value_template: >-
+                    {{
+                      wait.trigger is not none
+                      and wait.trigger.event.data.device_id == remote_device_id
+                      and (wait.trigger.event.data.endpoint_id | int) == endpoint
+                      and wait.trigger.event.data.command in ['stop', 'stop_with_on_off']
+                    }}
               sequence:
                 - choose:
                     - conditions: []
                       sequence: !input off_button_4_long
-                - delay:
-                    milliseconds: 200
+                - wait_for_trigger:
+                    - platform: event
+                      event_type: zha_event
+                      event_data:
+                        device_id: !input remote
+                        endpoint_id: 4
+                        command: stop
+                    - platform: event
+                      event_type: zha_event
+                      event_data:
+                        device_id: !input remote
+                        endpoint_id: 4
+                        command: stop_with_on_off
+                  timeout:
+                    milliseconds: !input hold_repeat_ms
+                  continue_on_timeout: true
       
       # Button 4 Stop
       - conditions:
