@@ -10,8 +10,11 @@ blueprint:
       description: Select the switch device
       selector:
         device:
-          integration: zha
-          model: ROB_200-025-0
+          filter:
+            - integration: zha
+              model: ROB_200-007-0
+            - integration: zha
+              model: ROB_200-025-0
           multiple: false
     on_button_1_short:
       name: Button 1 ON - Short press
