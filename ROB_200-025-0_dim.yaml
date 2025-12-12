@@ -115,6 +115,9 @@ variables:
   command: '{{ trigger.event.data.command }}'
   endpoint: '{{ trigger.event.data.endpoint_id | int }}'
   move_mode: '{{ trigger.event.data.params.move_mode | int(-1) }}'
+  step_mode_str: '{{ (trigger.event.data.params.step_mode | default("")) | string }}'
+  step_up: '{{ ("Up" in step_mode_str) or (step_mode_str == "0") }}'
+  step_down: '{{ ("Down" in step_mode_str) or (step_mode_str == "1") }}'
   remote_device_id: !input remote
   light_1_target: !input light_1
   light_2_target: !input light_2
@@ -135,62 +138,40 @@ action:
       # Button 1 ON short
       - conditions:
           - condition: template
-            value_template: '{{ command in ["on", "on_with_timed_off", "on_with_recall_global_scene"] and endpoint == 1 }}'
+            value_template: >-
+              {{
+                endpoint == 1 and (
+                  command in ["on", "on_with_timed_off", "on_with_recall_global_scene"]
+                  or (command in ["step", "step_with_on_off"] and step_up)
+                )
+                and (light_1_target | length) > 0
+              }}
         sequence:
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: >-
-                      {{
-                        light_1_target is mapping and (
-                          (light_1_target.entity_id is defined and (light_1_target.entity_id | length) > 0) or
-                          (light_1_target.device_id is defined and (light_1_target.device_id | length) > 0) or
-                          (light_1_target.area_id is defined and (light_1_target.area_id | length) > 0)
-                        )
-                      }}
-                sequence:
-                  - action: light.turn_on
-                    target: !input light_1
+          - action: light.turn_on
+            target: !input light_1
 
       # Button 1 TOGGLE short
       - conditions:
           - condition: template
-            value_template: '{{ command == "toggle" and endpoint == 1 }}'
+            value_template: '{{ command == "toggle" and endpoint == 1 and (light_1_target | length) > 0 }}'
         sequence:
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: >-
-                      {{
-                        light_1_target is mapping and (
-                          (light_1_target.entity_id is defined and (light_1_target.entity_id | length) > 0) or
-                          (light_1_target.device_id is defined and (light_1_target.device_id | length) > 0) or
-                          (light_1_target.area_id is defined and (light_1_target.area_id | length) > 0)
-                        )
-                      }}
-                sequence:
-                  - action: light.toggle
-                    target: !input light_1
+          - action: light.toggle
+            target: !input light_1
       
       # Button 1 OFF short
       - conditions:
           - condition: template
-            value_template: '{{ command in ["off", "off_with_effect"] and endpoint == 1 }}'
+            value_template: >-
+              {{
+                endpoint == 1 and (
+                  command in ["off", "off_with_effect"]
+                  or (command in ["step", "step_with_on_off"] and step_down)
+                )
+                and (light_1_target | length) > 0
+              }}
         sequence:
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: >-
-                      {{
-                        light_1_target is mapping and (
-                          (light_1_target.entity_id is defined and (light_1_target.entity_id | length) > 0) or
-                          (light_1_target.device_id is defined and (light_1_target.device_id | length) > 0) or
-                          (light_1_target.area_id is defined and (light_1_target.area_id | length) > 0)
-                        )
-                      }}
-                sequence:
-                  - action: light.turn_off
-                    target: !input light_1
+          - action: light.turn_off
+            target: !input light_1
       
       # Button 1 ON long (move_with_on_off up)
       - conditions:
@@ -305,62 +286,40 @@ action:
       # Button 2 ON short
       - conditions:
           - condition: template
-            value_template: '{{ command in ["on", "on_with_timed_off", "on_with_recall_global_scene"] and endpoint == 2 }}'
+            value_template: >-
+              {{
+                endpoint == 2 and (
+                  command in ["on", "on_with_timed_off", "on_with_recall_global_scene"]
+                  or (command in ["step", "step_with_on_off"] and step_up)
+                )
+                and (light_2_target | length) > 0
+              }}
         sequence:
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: >-
-                      {{
-                        light_2_target is mapping and (
-                          (light_2_target.entity_id is defined and (light_2_target.entity_id | length) > 0) or
-                          (light_2_target.device_id is defined and (light_2_target.device_id | length) > 0) or
-                          (light_2_target.area_id is defined and (light_2_target.area_id | length) > 0)
-                        )
-                      }}
-                sequence:
-                  - action: light.turn_on
-                    target: !input light_2
+          - action: light.turn_on
+            target: !input light_2
 
       # Button 2 TOGGLE short
       - conditions:
           - condition: template
-            value_template: '{{ command == "toggle" and endpoint == 2 }}'
+            value_template: '{{ command == "toggle" and endpoint == 2 and (light_2_target | length) > 0 }}'
         sequence:
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: >-
-                      {{
-                        light_2_target is mapping and (
-                          (light_2_target.entity_id is defined and (light_2_target.entity_id | length) > 0) or
-                          (light_2_target.device_id is defined and (light_2_target.device_id | length) > 0) or
-                          (light_2_target.area_id is defined and (light_2_target.area_id | length) > 0)
-                        )
-                      }}
-                sequence:
-                  - action: light.toggle
-                    target: !input light_2
+          - action: light.toggle
+            target: !input light_2
       
       # Button 2 OFF short
       - conditions:
           - condition: template
-            value_template: '{{ command in ["off", "off_with_effect"] and endpoint == 2 }}'
+            value_template: >-
+              {{
+                endpoint == 2 and (
+                  command in ["off", "off_with_effect"]
+                  or (command in ["step", "step_with_on_off"] and step_down)
+                )
+                and (light_2_target | length) > 0
+              }}
         sequence:
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: >-
-                      {{
-                        light_2_target is mapping and (
-                          (light_2_target.entity_id is defined and (light_2_target.entity_id | length) > 0) or
-                          (light_2_target.device_id is defined and (light_2_target.device_id | length) > 0) or
-                          (light_2_target.area_id is defined and (light_2_target.area_id | length) > 0)
-                        )
-                      }}
-                sequence:
-                  - action: light.turn_off
-                    target: !input light_2
+          - action: light.turn_off
+            target: !input light_2
       
       # Button 2 ON long
       - conditions:
@@ -475,62 +434,40 @@ action:
       # Button 3 ON short
       - conditions:
           - condition: template
-            value_template: '{{ command in ["on", "on_with_timed_off", "on_with_recall_global_scene"] and endpoint == 3 }}'
+            value_template: >-
+              {{
+                endpoint == 3 and (
+                  command in ["on", "on_with_timed_off", "on_with_recall_global_scene"]
+                  or (command in ["step", "step_with_on_off"] and step_up)
+                )
+                and (light_3_target | length) > 0
+              }}
         sequence:
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: >-
-                      {{
-                        light_3_target is mapping and (
-                          (light_3_target.entity_id is defined and (light_3_target.entity_id | length) > 0) or
-                          (light_3_target.device_id is defined and (light_3_target.device_id | length) > 0) or
-                          (light_3_target.area_id is defined and (light_3_target.area_id | length) > 0)
-                        )
-                      }}
-                sequence:
-                  - action: light.turn_on
-                    target: !input light_3
+          - action: light.turn_on
+            target: !input light_3
 
       # Button 3 TOGGLE short
       - conditions:
           - condition: template
-            value_template: '{{ command == "toggle" and endpoint == 3 }}'
+            value_template: '{{ command == "toggle" and endpoint == 3 and (light_3_target | length) > 0 }}'
         sequence:
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: >-
-                      {{
-                        light_3_target is mapping and (
-                          (light_3_target.entity_id is defined and (light_3_target.entity_id | length) > 0) or
-                          (light_3_target.device_id is defined and (light_3_target.device_id | length) > 0) or
-                          (light_3_target.area_id is defined and (light_3_target.area_id | length) > 0)
-                        )
-                      }}
-                sequence:
-                  - action: light.toggle
-                    target: !input light_3
+          - action: light.toggle
+            target: !input light_3
       
       # Button 3 OFF short
       - conditions:
           - condition: template
-            value_template: '{{ command in ["off", "off_with_effect"] and endpoint == 3 }}'
+            value_template: >-
+              {{
+                endpoint == 3 and (
+                  command in ["off", "off_with_effect"]
+                  or (command in ["step", "step_with_on_off"] and step_down)
+                )
+                and (light_3_target | length) > 0
+              }}
         sequence:
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: >-
-                      {{
-                        light_3_target is mapping and (
-                          (light_3_target.entity_id is defined and (light_3_target.entity_id | length) > 0) or
-                          (light_3_target.device_id is defined and (light_3_target.device_id | length) > 0) or
-                          (light_3_target.area_id is defined and (light_3_target.area_id | length) > 0)
-                        )
-                      }}
-                sequence:
-                  - action: light.turn_off
-                    target: !input light_3
+          - action: light.turn_off
+            target: !input light_3
       
       # Button 3 ON long
       - conditions:
@@ -645,62 +582,40 @@ action:
       # Button 4 ON short
       - conditions:
           - condition: template
-            value_template: '{{ command in ["on", "on_with_timed_off", "on_with_recall_global_scene"] and endpoint == 4 }}'
+            value_template: >-
+              {{
+                endpoint == 4 and (
+                  command in ["on", "on_with_timed_off", "on_with_recall_global_scene"]
+                  or (command in ["step", "step_with_on_off"] and step_up)
+                )
+                and (light_4_target | length) > 0
+              }}
         sequence:
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: >-
-                      {{
-                        light_4_target is mapping and (
-                          (light_4_target.entity_id is defined and (light_4_target.entity_id | length) > 0) or
-                          (light_4_target.device_id is defined and (light_4_target.device_id | length) > 0) or
-                          (light_4_target.area_id is defined and (light_4_target.area_id | length) > 0)
-                        )
-                      }}
-                sequence:
-                  - action: light.turn_on
-                    target: !input light_4
+          - action: light.turn_on
+            target: !input light_4
 
       # Button 4 TOGGLE short
       - conditions:
           - condition: template
-            value_template: '{{ command == "toggle" and endpoint == 4 }}'
+            value_template: '{{ command == "toggle" and endpoint == 4 and (light_4_target | length) > 0 }}'
         sequence:
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: >-
-                      {{
-                        light_4_target is mapping and (
-                          (light_4_target.entity_id is defined and (light_4_target.entity_id | length) > 0) or
-                          (light_4_target.device_id is defined and (light_4_target.device_id | length) > 0) or
-                          (light_4_target.area_id is defined and (light_4_target.area_id | length) > 0)
-                        )
-                      }}
-                sequence:
-                  - action: light.toggle
-                    target: !input light_4
+          - action: light.toggle
+            target: !input light_4
       
       # Button 4 OFF short
       - conditions:
           - condition: template
-            value_template: '{{ command in ["off", "off_with_effect"] and endpoint == 4 }}'
+            value_template: >-
+              {{
+                endpoint == 4 and (
+                  command in ["off", "off_with_effect"]
+                  or (command in ["step", "step_with_on_off"] and step_down)
+                )
+                and (light_4_target | length) > 0
+              }}
         sequence:
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: >-
-                      {{
-                        light_4_target is mapping and (
-                          (light_4_target.entity_id is defined and (light_4_target.entity_id | length) > 0) or
-                          (light_4_target.device_id is defined and (light_4_target.device_id | length) > 0) or
-                          (light_4_target.area_id is defined and (light_4_target.area_id | length) > 0)
-                        )
-                      }}
-                sequence:
-                  - action: light.turn_off
-                    target: !input light_4
+          - action: light.turn_off
+            target: !input light_4
       
       # Button 4 ON long
       - conditions:
