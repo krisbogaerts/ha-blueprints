@@ -1,5 +1,5 @@
 blueprint:
-  name: ROBB SMARRT 8-button switch (ROB_200-025-0) - Fixed
+  name: ROBB SMARRT 8-button switch (ROB_200-007-0) - Fixed
   description: |
     Control devices with ROBB SMARRT 8-button ZigBee switch
     Fixed to properly handle Move/Stop events for dimming
@@ -16,6 +16,7 @@ blueprint:
             - integration: zha
               model: ROB_200-025-0
           multiple: false
+    
     on_button_1_short:
       name: Button 1 ON - Short press
       description: Action to run on short press
@@ -176,10 +177,10 @@ action:
                 - delay:
                     milliseconds: 200
       
-      # Button 1 Stop (release)
+      # Button 1 Stop (release) - handles both stop and stop_with_on_off
       - conditions:
           - condition: template
-            value_template: '{{ command == "stop" and endpoint == 1 }}'
+            value_template: '{{ (command == "stop" or command == "stop_with_on_off") and endpoint == 1 }}'
         sequence: []
       
       # Button 2 ON short
@@ -229,7 +230,7 @@ action:
       # Button 2 Stop
       - conditions:
           - condition: template
-            value_template: '{{ command == "stop" and endpoint == 2 }}'
+            value_template: '{{ (command == "stop" or command == "stop_with_on_off") and endpoint == 2 }}'
         sequence: []
       
       # Button 3 ON short
@@ -279,7 +280,7 @@ action:
       # Button 3 Stop
       - conditions:
           - condition: template
-            value_template: '{{ command == "stop" and endpoint == 3 }}'
+            value_template: '{{ (command == "stop" or command == "stop_with_on_off") and endpoint == 3 }}'
         sequence: []
       
       # Button 4 ON short
@@ -329,5 +330,5 @@ action:
       # Button 4 Stop
       - conditions:
           - condition: template
-            value_template: '{{ command == "stop" and endpoint == 4 }}'
+            value_template: '{{ (command == "stop" or command == "stop_with_on_off") and endpoint == 4 }}'
         sequence: []
