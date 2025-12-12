@@ -5,15 +5,19 @@ blueprint:
     Fixed to properly handle Move/Stop events for dimming
 
     This is a dimming-focused blueprint:
-    - Short ON: light.turn_on (uses last brightness)
-    - Short OFF: light.turn_off
+    - Short ON: light.turn_on (uses last brightness) with optional transition
+    - Short OFF: light.turn_off with optional transition
     - Long ON: dim up while holding
     - Long OFF: dim down while holding
 
-    Recommended settings (target ~5-8s from 0% to 100%):
+    Recommended settings (baseline target ~5-8s from 0% to 100%):
     - hold_repeat_ms: 250 (slower: 300-450)
     - dim_step: 8 to 10
     - dim_transition_s: 0.2 (keep it <= hold_repeat_ms/1000)
+    - short_transition_s: 0.2 to 0.5
+    - accel_after_s: 1.0 to 2.0 (0 disables acceleration)
+    - accel_multiplier: 2
+    - accel_max_step: 20 to 30
   domain: automation
   input:
     remote:
@@ -86,6 +90,39 @@ blueprint:
           step: 0.1
           mode: slider
 
+    accel_after_s:
+      name: Dimming acceleration after (seconds)
+      description: Increase dimming speed after holding this long (0 disables)
+      default: 1.5
+      selector:
+        number:
+          min: 0
+          max: 10
+          step: 0.5
+          mode: slider
+
+    accel_multiplier:
+      name: Dimming acceleration multiplier
+      description: Multiplier applied to dim_step after accel_after_s
+      default: 2
+      selector:
+        number:
+          min: 1
+          max: 6
+          step: 0.5
+          mode: slider
+
+    accel_max_step:
+      name: Max accelerated dim step
+      description: Upper cap for accelerated brightness_step
+      default: 25
+      selector:
+        number:
+          min: 1
+          max: 50
+          step: 1
+          mode: slider
+
     short_transition_s:
       name: Short press transition (seconds)
       description: Transition used for short ON/OFF (recommended 0.2-0.5)
@@ -137,6 +174,9 @@ variables:
   dim_step: !input dim_step
   dim_transition_s: !input dim_transition_s
   short_transition_s: !input short_transition_s
+  accel_after_s: !input accel_after_s
+  accel_multiplier: !input accel_multiplier
+  accel_max_step: !input accel_max_step
   max_hold_s: !input max_hold_s
 
 trigger:
@@ -206,7 +246,15 @@ action:
                 - action: light.turn_on
                   target: !input light_1
                   data:
-                    brightness_step: '{{ dim_step | int }}'
+                    brightness_step: >-
+                      {% set base = dim_step | int %}
+                      {% set elapsed = (now().timestamp() - hold_started) | float %}
+                      {% if (accel_after_s | float) > 0 and elapsed >= (accel_after_s | float) %}
+                        {% set step = (base * (accel_multiplier | float)) | round(0) | int %}
+                      {% else %}
+                        {% set step = base %}
+                      {% endif %}
+                      {{ [step, (accel_max_step | int)] | min }}
                     transition: '{{ dim_transition_s | float }}'
                 - wait_for_trigger:
                     - platform: event
@@ -246,7 +294,15 @@ action:
                 - action: light.turn_on
                   target: !input light_1
                   data:
-                    brightness_step: '{{ (dim_step | int) * -1 }}'
+                    brightness_step: >-
+                      {% set base = dim_step | int %}
+                      {% set elapsed = (now().timestamp() - hold_started) | float %}
+                      {% if (accel_after_s | float) > 0 and elapsed >= (accel_after_s | float) %}
+                        {% set step = (base * (accel_multiplier | float)) | round(0) | int %}
+                      {% else %}
+                        {% set step = base %}
+                      {% endif %}
+                      {{ -1 * ([step, (accel_max_step | int)] | min) }}
                     transition: '{{ dim_transition_s | float }}'
                 - wait_for_trigger:
                     - platform: event
@@ -336,7 +392,15 @@ action:
                 - action: light.turn_on
                   target: !input light_2
                   data:
-                    brightness_step: '{{ dim_step | int }}'
+                    brightness_step: >-
+                      {% set base = dim_step | int %}
+                      {% set elapsed = (now().timestamp() - hold_started) | float %}
+                      {% if (accel_after_s | float) > 0 and elapsed >= (accel_after_s | float) %}
+                        {% set step = (base * (accel_multiplier | float)) | round(0) | int %}
+                      {% else %}
+                        {% set step = base %}
+                      {% endif %}
+                      {{ [step, (accel_max_step | int)] | min }}
                     transition: '{{ dim_transition_s | float }}'
                 - wait_for_trigger:
                     - platform: event
@@ -376,7 +440,15 @@ action:
                 - action: light.turn_on
                   target: !input light_2
                   data:
-                    brightness_step: '{{ (dim_step | int) * -1 }}'
+                    brightness_step: >-
+                      {% set base = dim_step | int %}
+                      {% set elapsed = (now().timestamp() - hold_started) | float %}
+                      {% if (accel_after_s | float) > 0 and elapsed >= (accel_after_s | float) %}
+                        {% set step = (base * (accel_multiplier | float)) | round(0) | int %}
+                      {% else %}
+                        {% set step = base %}
+                      {% endif %}
+                      {{ -1 * ([step, (accel_max_step | int)] | min) }}
                     transition: '{{ dim_transition_s | float }}'
                 - wait_for_trigger:
                     - platform: event
@@ -466,7 +538,15 @@ action:
                 - action: light.turn_on
                   target: !input light_3
                   data:
-                    brightness_step: '{{ dim_step | int }}'
+                    brightness_step: >-
+                      {% set base = dim_step | int %}
+                      {% set elapsed = (now().timestamp() - hold_started) | float %}
+                      {% if (accel_after_s | float) > 0 and elapsed >= (accel_after_s | float) %}
+                        {% set step = (base * (accel_multiplier | float)) | round(0) | int %}
+                      {% else %}
+                        {% set step = base %}
+                      {% endif %}
+                      {{ [step, (accel_max_step | int)] | min }}
                     transition: '{{ dim_transition_s | float }}'
                 - wait_for_trigger:
                     - platform: event
@@ -506,7 +586,15 @@ action:
                 - action: light.turn_on
                   target: !input light_3
                   data:
-                    brightness_step: '{{ (dim_step | int) * -1 }}'
+                    brightness_step: >-
+                      {% set base = dim_step | int %}
+                      {% set elapsed = (now().timestamp() - hold_started) | float %}
+                      {% if (accel_after_s | float) > 0 and elapsed >= (accel_after_s | float) %}
+                        {% set step = (base * (accel_multiplier | float)) | round(0) | int %}
+                      {% else %}
+                        {% set step = base %}
+                      {% endif %}
+                      {{ -1 * ([step, (accel_max_step | int)] | min) }}
                     transition: '{{ dim_transition_s | float }}'
                 - wait_for_trigger:
                     - platform: event
@@ -596,7 +684,15 @@ action:
                 - action: light.turn_on
                   target: !input light_4
                   data:
-                    brightness_step: '{{ dim_step | int }}'
+                    brightness_step: >-
+                      {% set base = dim_step | int %}
+                      {% set elapsed = (now().timestamp() - hold_started) | float %}
+                      {% if (accel_after_s | float) > 0 and elapsed >= (accel_after_s | float) %}
+                        {% set step = (base * (accel_multiplier | float)) | round(0) | int %}
+                      {% else %}
+                        {% set step = base %}
+                      {% endif %}
+                      {{ [step, (accel_max_step | int)] | min }}
                     transition: '{{ dim_transition_s | float }}'
                 - wait_for_trigger:
                     - platform: event
@@ -636,7 +732,15 @@ action:
                 - action: light.turn_on
                   target: !input light_4
                   data:
-                    brightness_step: '{{ (dim_step | int) * -1 }}'
+                    brightness_step: >-
+                      {% set base = dim_step | int %}
+                      {% set elapsed = (now().timestamp() - hold_started) | float %}
+                      {% if (accel_after_s | float) > 0 and elapsed >= (accel_after_s | float) %}
+                        {% set step = (base * (accel_multiplier | float)) | round(0) | int %}
+                      {% else %}
+                        {% set step = base %}
+                      {% endif %}
+                      {{ -1 * ([step, (accel_max_step | int)] | min) }}
                     transition: '{{ dim_transition_s | float }}'
                 - wait_for_trigger:
                     - platform: event
